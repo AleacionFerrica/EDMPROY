@@ -6,17 +6,11 @@ library(dplyr)
 library(ggplot2)
 
 # Cargar datos
-vulnerabilidad <- st_read("data/vulnerabilidad-por-barrios.geojson")
-ayuda_adiccion <- st_read("data/addiccions-adicciones.geojson")
-ayuda_discapacidad <- st_read("data/discapacitat-discapacidad.geojson")
-ayuda_sinhogar <- st_read("data/sense-llar-sin-hogar.geojson")
-ayuda_mujer <- st_read("data/dona-mujer.geojson")
-
-#vulnerabilidad <- st_read("C:/Users/jorge/Downloads/EDMPROY/vulnerabilidad-por-barrios.geojson")
-#ayuda_adiccion <- st_read("C:/Users/jorge/Downloads/EDMPROY/addiccions-adicciones.geojson")
-#ayuda_discapacidad <- st_read("C:/Users/jorge/Downloads/EDMPROY/discapacitat-discapacidad.geojson")
-#ayuda_sinhogar <- st_read("C:/Users/jorge/Downloads/EDMPROY/sense-llar-sin-hogar.geojson")
-#ayuda_mujer <- st_read("C:/Users/jorge/Downloads/EDMPROY/dona-mujer.geojson")
+vulnerabilidad <- st_read("../data/vulnerabilidad-barrios.geojson")
+ayuda_adiccion <- st_read("../data/addiccions-adicciones.geojson")
+ayuda_discapacidad <- st_read("../data/discapacitat-discapacidad.geojson")
+ayuda_sinhogar <- st_read("../data/sense-llar-sin-hogar.geojson")
+ayuda_mujer <- st_read("../data/dona-mujer.geojson")
 
 # Agregar la columna de barrio a los dataframes de ayudas
 ayuda_adiccion <- st_join(ayuda_adiccion, vulnerabilidad, join = st_within)
