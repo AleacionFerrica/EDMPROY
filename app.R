@@ -1,7 +1,9 @@
 library(shiny)
+library(shinydashboard)
 library(leaflet)
 library(sf)
 library(dplyr)
+library(ggplot2)
 
 # Cargar datos
 vulnerabilidad <- st_read("data/vulnerabilidad-por-barrios.geojson")
@@ -22,44 +24,53 @@ ayuda_discapacidad <- st_join(ayuda_discapacidad, vulnerabilidad, join = st_with
 ayuda_sinhogar <- st_join(ayuda_sinhogar, vulnerabilidad, join = st_within)
 ayuda_mujer <- st_join(ayuda_mujer, vulnerabilidad, join = st_within)
 
-ui <- fluidPage(
-  titlePanel("Vulnerabilidad por barrios"),
-  sidebarLayout(
-    sidebarPanel(
-      selectInput(
-        "barrio",
-        "Seleccionar Barrio:",
-        choices = c("Todos", unique(vulnerabilidad$nombre)),
-        selected = "Todos"
-      ),
-      selectInput(
-        "indice",
-        "Seleccionar Índice de Vulnerabilidad:",
-        choices = c("Global" = "ind_global", "Equipamiento" = "ind_equip", "Demográfico" = "ind_dem", "Económico" = "ind_econom"),
-        selected = "ind_global"
-      ),
-      sliderInput(
-        "vul_range",
-        "Rango de Vulnerabilidad:",
-        min = min(vulnerabilidad$ind_global, na.rm = TRUE),
-        max = max(vulnerabilidad$ind_global, na.rm = TRUE),
-        value = range(vulnerabilidad$ind_global, na.rm = TRUE),
-        step = 0.1
-      ),
-      checkboxGroupInput(
-        "ayudas",
-        "Puntos de ayuda a Mostrar:",
-        choices = c(
-          "Ayuda Adicción" = "ayuda_adiccion",
-          "Ayuda a Discapacitados" = "ayuda_discapacidad",
-          "Ayuda Sin Hogar" = "ayuda_sinhogar",
-          "Ayuda a Mujeres" = "ayuda_mujer"
-        ),
-        selected = c("ayuda_adiccion", "ayuda_discapacidad", "ayuda_sinhogar", "ayuda_mujer")
-      )
+ui <- dashboardPage(
+  dashboardHeader(title = "Vulnerabilidad por barrios"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Mapa", tabName = "mapa", icon = icon("map")),
+      menuItem("Gráfico de Barras", tabName = "barras", icon = icon("bar-chart"))
     ),
-    mainPanel(
-      leafletOutput("vulnerabilidades")
+    selectInput(
+      "barrio",
+      "Seleccionar Barrio:",
+      choices = c("Todos", unique(vulnerabilidad$nombre)),
+      selected = "Todos"
+    ),
+    selectInput(
+      "indice",
+      "Seleccionar Índice de Vulnerabilidad:",
+      choices = c("Global" = "ind_global", "Equipamiento" = "ind_equip", "Demográfico" = "ind_dem", "Económico" = "ind_econom"),
+      selected = "ind_global"
+    ),
+    sliderInput(
+      "vul_range",
+      "Rango de Vulnerabilidad:",
+      min = min(vulnerabilidad$ind_global, na.rm = TRUE),
+      max = max(vulnerabilidad$ind_global, na.rm = TRUE),
+      value = range(vulnerabilidad$ind_global, na.rm = TRUE),
+      step = 0.1
+    ),
+    checkboxGroupInput(
+      "ayudas",
+      "Puntos de ayuda a Mostrar:",
+      choices = c(
+        "Ayuda Adicción" = "ayuda_adiccion",
+        "Ayuda a Discapacitados" = "ayuda_discapacidad",
+        "Ayuda Sin Hogar" = "ayuda_sinhogar",
+        "Ayuda a Mujeres" = "ayuda_mujer"
+      ),
+      selected = c("ayuda_adiccion", "ayuda_discapacidad", "ayuda_sinhogar", "ayuda_mujer")
+    )
+  ),
+  dashboardBody(
+    tabItems(
+      tabItem(tabName = "mapa",
+              leafletOutput("vulnerabilidades")
+      ),
+      tabItem(tabName = "barras",
+              plotOutput("barplot")
+      )
     )
   )
 )
@@ -163,6 +174,23 @@ server <- function(input, output, session) {
       add_points_to_map("vulnerabilidades", ayuda_mujer_filtered, "purple", "Ayuda a Mujeres")
     }
   })
+  
+  output$barplot <- renderPlot({
+    selected_data <- vulnerabilidad
+    if (input$barrio != "Todos"){
+    selected_data = subset(selected_data, nombre== input$barrio)}
+    selected_data <- subset(selected_data, selected_data[[input$indice]] >= input$vul_range[1] & selected_data[[input$indice]] <= input$vul_range[2])
+    
+    ggplot(selected_data, aes(x = reorder(nombre, -selected_data[[input$indice]]), y = selected_data[[input$indice]])) +
+      geom_bar(stat = "identity",fill = "#98ff98") +
+      theme_minimal() +
+      labs(
+        title = "Índice de Vulnerabilidad por Barrio",
+        x = "Barrio",
+        y = "Índice de Vulnerabilidad"
+      ) +
+      theme(axis.text.y = element_text(angle = 45, hjust = 1))+
+      coord_flip()  # Gira el gráfico para facilitar la lectura
+  })
 }
-
 shinyApp(ui = ui, server = server)
